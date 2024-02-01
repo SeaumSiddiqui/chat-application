@@ -9,7 +9,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Server implements Runnable{
-    private ArrayList<ConnectionHandler> connections;
+    private final ArrayList<ConnectionHandler> connections;
     private ServerSocket server;
     private boolean close;
     private ExecutorService pool;
@@ -31,7 +31,7 @@ public class Server implements Runnable{
                 connections.add(handler);
                 pool.execute(handler);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             shutDown();
         }
     }
@@ -43,8 +43,8 @@ public class Server implements Runnable{
     }
 
     public void shutDown() {
+        close = true;
         try {
-            close = true;
             pool.shutdown();
             if (!server.isClosed()) server.close();
 
@@ -57,7 +57,7 @@ public class Server implements Runnable{
     }
 
     class ConnectionHandler implements Runnable{
-        private Socket client;
+        private final Socket client;
         private PrintWriter out;
         private BufferedReader in;
 
@@ -74,14 +74,15 @@ public class Server implements Runnable{
                 out.println("Enter an username: ");
                 String username = in.readLine();
                 if (username != null) {
-                    System.out.println(username + "connected");
-                    broadcast(username + "just joined the chat");
+                    System.out.println(username + " connected");
+                    broadcast(username + " just joined the chat");
                 }
 
                 String message;
                 while ((message = in.readLine()) != null) {
                     if (message.startsWith("/quit")) {
-                        broadcast(username + "left the chat");
+                        System.out.println(username + " left");
+                        broadcast(username + " left the chat");
                         shutDown();
                     } else {
                         broadcast(username + ": " + message);
