@@ -36,9 +36,9 @@ public class Server implements Runnable{
         }
     }
 
-    public void broadcast(String message) {
+    public void broadcast(String sender, String message) {
         for (ConnectionHandler ch: connections) {
-            ch.sendMessage(message);
+            if (!ch.getUsername().equals(sender)) ch.sendMessage(sender, message);
         }
     }
 
@@ -58,6 +58,7 @@ public class Server implements Runnable{
 
     class ConnectionHandler implements Runnable{
         private final Socket client;
+        private String username;
         private PrintWriter out;
         private BufferedReader in;
 
@@ -72,20 +73,32 @@ public class Server implements Runnable{
                 in = new BufferedReader(new InputStreamReader(client.getInputStream()));
 
                 out.println("Enter an username: ");
-                String username = in.readLine();
+                username = in.readLine();
                 if (username != null) {
                     System.out.println(username + " connected");
-                    broadcast(username + " just joined the chat");
+                    broadcast(username, " just joined the chat");
                 }
 
                 String message;
                 while ((message = in.readLine()) != null) {
-                    if (message.startsWith("/quit")) {
+                    if (message.startsWith("/username")) {
+                        String[] splitMessage = message.split(" ", 2);
+
+                        if (splitMessage.length == 2) {
+                            System.out.println(username + " renamed themselves to " + splitMessage[1]);
+                            broadcast(username, " renamed themselves to " + splitMessage[1]);
+                            username = splitMessage[1];
+                            out.println("successfully changed username to " + username);
+                        } else {
+                            out.println("invalid username");
+                        }
+
+                    } else if (message.startsWith("/quit")) {
                         System.out.println(username + " left");
-                        broadcast(username + " left the chat");
+                        broadcast(username, " left the chat");
                         shutDown();
                     } else {
-                        broadcast(username + ": " + message);
+                        broadcast(username, ": " + message);
                     }
                 }
             } catch (IOException e) {
@@ -93,8 +106,8 @@ public class Server implements Runnable{
             }
         }
 
-        public void sendMessage(String message) {
-            out.println(message);
+        public void sendMessage(String sender, String message) {
+            out.println("\n" + sender + message);
         }
 
         public void shutDown() {
@@ -105,6 +118,10 @@ public class Server implements Runnable{
             } catch (IOException e) {
                 // nothing here
             }
+        }
+
+        public String getUsername() {
+            return username != null ? username : "unknown";
         }
     }
 }
